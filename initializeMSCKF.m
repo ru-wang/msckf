@@ -17,7 +17,7 @@ msckfState = augmentState(msckfState, camera, state_k);
 featureTracks = {};
 trackedFeatureIds = [];
 
-% walk through the squeeze of feature tracks, add the corresponding
+% walk through the sequence of feature tracks, add the corresponding
 % features index into featureId
  for featureId = 1:size(firstMeasurements.y,2)
         meas_k = firstMeasurements.y(:, featureId);

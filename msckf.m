@@ -40,7 +40,7 @@ bg_var_init = 1e-6 * ones(1,3);        % init gyro bias var
 ba_var_init = 1e-6 * ones(1,3);        % init accel bias var
 v_var_init = 1e-6 * ones(1,3);         % init velocity var
 p_var_init = 1e-6 * ones(1,3);         % init pos var
-%% TODO 是IMU的error的初始协方差
+%% TODO 是IMU的error的初始协方差 就是P0+
 noiseParams.initialIMUCovar = diag([q_var_init, bg_var_init, ba_var_init,v_var_init, p_var_init]);
    
    
@@ -107,6 +107,7 @@ end
  firstImuState.p_I_G = [0;0;0];
  
 % initialize the first state
+%% TODO 初始化咯
 [msckfState, featureTracks, trackedFeatureIds] = initializeMSCKF(firstImuState, measurements{kStart}, camera, kStart, noiseParams);
 imuStates = updateStateHistory(imuStates, msckfState, camera, kStart);
 msckfState_imuOnly{kStart} = msckfState;
