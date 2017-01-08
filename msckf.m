@@ -21,10 +21,13 @@ camera.p_C_I    = rho_v_c_v;            % 3x1 Camera position in IMU frame
 
 
 %Set up the noise parameters
+%% TODO 图像噪声R
 y_var = 11^2 * ones(1,4);               % pixel coord var  
 noiseParams.u_var_prime = y_var(1)/camera.f_u^2;
 noiseParams.v_var_prime = y_var(2)/camera.f_v^2;
 
+%% TODO [n_g n_wg n_a n_wa] --> [w_var dbg_var a_var dba_var]
+%% TODO Q_imu = E[ [n_g n_wg n_a n_wa][n_g n_wg n_a n_wa]' ] 系统噪声协方差Q
 w_var = 4e-2 * ones(1,3);               % rot vel var  
 a_var = 4e-2 * ones(1,3);               % lin accel var  
 dbg_var = 1e-6 * ones(1,3);            % gyro bias change var 
@@ -37,6 +40,7 @@ bg_var_init = 1e-6 * ones(1,3);        % init gyro bias var
 ba_var_init = 1e-6 * ones(1,3);        % init accel bias var
 v_var_init = 1e-6 * ones(1,3);         % init velocity var
 p_var_init = 1e-6 * ones(1,3);         % init pos var
+%% TODO 是IMU的error的初始协方差
 noiseParams.initialIMUCovar = diag([q_var_init, bg_var_init, ba_var_init,v_var_init, p_var_init]);
    
    
@@ -56,14 +60,23 @@ msckfParams.doQRdecomp = true;
 % measurement flag with NaN
 prunedStates = {};
 % IMU state for plotting etc. Structures indexed in a cell array
+%% TODO 创建和image数量一样size的状态数组
 imuStates = cell(1,numel(tracks_timestamp));
 
 % idealize feature
+%% TODO 去除相机内参
 undistored_featuretracks = undistortFeatureTracks(featuretracks,cu,cv,fu,fv,w);
+
+%% TODO 就是转换一下格式 每个image至多1000个feature
 y_k_j = transformFeatureTracksFormat(undistored_featuretracks); % transform the tango format 
 y_k_j(y_k_j == -1) = NaN;
+
+%% TODO 有多少state就有多少measurement
 measurements = cell(1,numel(tracks_timestamp));
+
+%% TODO 有效的landmark的数量
 numLandmarks = size(y_k_j,3);
+
 % get camera-gyro aligned index
 aligned_index = syn_index;
 aligned_imu_reading = aligned_gyro_accel;
@@ -78,32 +91,7 @@ for state_k = kStart:kEnd
     
     measurements{state_k}.index        = state_k;
     measurements{state_k}.imu_reading  = aligned_imu_reading(start_gyro_accel_index:end_gyro_accel_index,:);
-    measurements{state_k}.y            = squeeze(y_k_j(1:2,state_k,:));  
-     
-    
-    % a for-loop comsume too much time
-    % Idealize camera measurements  
-%     for i = 1:numLandmarks
-%         if  ~isnan(measurements{state_k}.y(1,i))
-%             measurements{state_k}.y(1,i) = (measurements{state_k}.y(1,i) - camera.c_u)/camera.f_u;
-%             measurements{state_k}.y(2,i) = (measurements{state_k}.y(2,i) - camera.c_v)/camera.f_v;
-%             % undistortiuon
-%             distR = sqrt(measurements{state_k}.y(1,i)*measurements{state_k}.y(1,i) + measurements{state_k}.y(2,i)*measurements{state_k}.y(2,i));
-%             dOneOver2Tan = 1.0 / (2.0 * tan(camera.w / 2.0));
-%             R = tan(distR * camera.w) * dOneOver2Tan;
-%             
-%             if distR > 0.01
-%                 dFactor =  R / distR;
-%             else
-%                 dFactor = 1.0;
-%             end
-%             
-%             measurements{state_k}.y(1,i) = measurements{state_k}.y(1,i)*dFactor;
-%             measurements{state_k}.y(2,i) = measurements{state_k}.y(2,i)*dFactor;
-%         end
-%     end
-
-
+    measurements{state_k}.y            = squeeze(y_k_j(1:2,state_k,:));   %% TODO 把每帧的特征拿出来
 end
 
 
