@@ -9,7 +9,6 @@ fileName = './dataset/tango/data1/dataset_camera_alignedindex_featuretracks.mat'
 
 load(fileName);
 
-
 %Set up the camera parameters 
 camera.c_u      = cu;                   % Principal point [u pixels] 
 camera.c_v      = cv;                   % Principal point [v pixels]
@@ -19,15 +18,14 @@ camera.w        = w;                    % distortion
 camera.q_CI     = rotMatToQuat(C_c_v);  % 4x1 IMU-to-Camera rotation quaternion
 camera.p_C_I    = rho_v_c_v;            % 3x1 Camera position in IMU frame
 
-
 %Set up the noise parameters
 %% TODO 图像噪声R
 y_var = 11^2 * ones(1,4);               % pixel coord var  
 noiseParams.u_var_prime = y_var(1)/camera.f_u^2;
 noiseParams.v_var_prime = y_var(2)/camera.f_v^2;
 
-%% TODO [n_g n_wg n_a n_wa] --> [w_var dbg_var a_var dba_var]
-%% TODO Q_imu = E[ [n_g n_wg n_a n_wa][n_g n_wg n_a n_wa]' ] 系统噪声协方差Q
+%% TODO [n_g' n_wg' n_a' n_wa'] --> [w_var dbg_var a_var dba_var]
+%% TODO Q_imu = E[ [n_g' n_wg' n_a' n_wa']' [n_g' n_wg' n_a' n_wa'] ] 系统噪声协方差Q
 w_var = 4e-2 * ones(1,3);               % rot vel var  
 a_var = 4e-2 * ones(1,3);               % lin accel var  
 dbg_var = 1e-6 * ones(1,3);            % gyro bias change var 
@@ -43,7 +41,6 @@ p_var_init = 1e-6 * ones(1,3);         % init pos var
 %% TODO 是IMU的error的初始协方差 就是P0+
 noiseParams.initialIMUCovar = diag([q_var_init, bg_var_init, ba_var_init,v_var_init, p_var_init]);
    
-   
 % MSCKF parameters
 msckfParams.minTrackLength = 10;        % Set to inf to dead-reckon only
 msckfParams.maxTrackLength = Inf;      % Set to inf to wait for features to go out of view
@@ -51,8 +48,6 @@ msckfParams.maxGNCostNorm  = 1e-2;     % Set to inf to allow any triangulation, 
 msckfParams.minRCOND       = 1e-12;
 msckfParams.doNullSpaceTrick = true;
 msckfParams.doQRdecomp = true;
-
-
 
 %% ========================== Prepare Data======================== %%
 % Important: Because we're idealizing our pixel measurements and the
@@ -81,8 +76,6 @@ numLandmarks = size(y_k_j,3);
 aligned_index = syn_index;
 aligned_imu_reading = aligned_gyro_accel;
 
-
-
 for state_k = kStart:kEnd
     % get IMU readings during the Period between previous and current image
     % coming 
@@ -94,12 +87,8 @@ for state_k = kStart:kEnd
     measurements{state_k}.y            = squeeze(y_k_j(1:2,state_k,:));   %% TODO 把每帧的特征拿出来
 end
 
-
 %% ==========================Initial State======================== %%
 % fill the field of first imustate
-% firstImuState.q_IG = rotMatToQuat(axisAngleToRotMat(theta_vk_i(:,kStart)));
-% firstImuState.p_I_G = r_i_vk_i(:,kStart);
-% firstImuState.q_IG = rotMatToQuat(rotx(90));
  firstImuState.q_IG = [0;0;0;1];
  firstImuState.b_g = zeros(3,1);
  firstImuState.b_a = zeros(3,1);
@@ -111,8 +100,8 @@ end
 [msckfState, featureTracks, trackedFeatureIds] = initializeMSCKF(firstImuState, measurements{kStart}, camera, kStart, noiseParams);
 imuStates = updateStateHistory(imuStates, msckfState, camera, kStart);
 msckfState_imuOnly{kStart} = msckfState;
-%% ============================MAIN LOOP========================== %%
 
+%% ============================MAIN LOOP========================== %%
 numFeatureTracksResidualized = 0;
 map = [];
 
@@ -120,29 +109,26 @@ for state_k = kStart:(kEnd-1)
     fprintf('state_k = %4d\n', state_k);
     
     %% ==========================STATE PROPAGATION======================== %%
-    
+    %% TODO B. Propagation
     %Propagate state and covariance
     msckfState = propagateMsckfStateAndCovar(msckfState, measurements{state_k}, noiseParams);
     msckfState_imuOnly{state_k+1} = propagateMsckfStateAndCovar(msckfState_imuOnly{state_k}, measurements{state_k}, noiseParams);
-    %Add camera pose to msckfState
+
+    %% ==========================STATE AUGMENTATION======================== %%
+    %% TODO C. State Augmentation
     msckfState = augmentState(msckfState, camera, state_k+1);
     
-    
-     %% ==========================FEATURE TRACKING======================== %%
+    %% ==========================FEATURE TRACKING======================== %%
     % Add observations to the feature tracks, or initialize a new one
     % If an observation is -1, add the track to featureTracksToResidualize
     featureTracksToResidualize = {};
     
-    
-    % 
     for featureId = 1:numLandmarks
         %IMPORTANT: state_k + 1 not state_k
         meas_k = measurements{state_k+1}.y(:, featureId);
-        
         outOfView = isnan(meas_k(1,1));
         
         if ismember(featureId, trackedFeatureIds)
-
             if ~outOfView 
                 %Append observation and append id to cam states
                 featureTracks{trackedFeatureIds == featureId}.observations(:, end+1) = meas_k;
@@ -152,12 +138,9 @@ for state_k = kStart:(kEnd-1)
             end
             
             track = featureTracks{trackedFeatureIds == featureId};
-            
-            % 
             if outOfView ...
                     || size(track.observations, 2) >= msckfParams.maxTrackLength ...
                     || state_k+1 == kEnd
-                                
                 %Feature is not in view, remove from the tracked features
                 [msckfState, camStates, camStateIndices] = removeTrackedFeature(msckfState, featureId);
                 
@@ -185,25 +168,21 @@ for state_k = kStart:(kEnd-1)
             msckfState.camStates{end}.trackedFeatureIds(end+1) = featureId;
         end
     end
-     
-    
     
     %% ==========================FEATURE RESIDUAL CORRECTIONS======================== %%
+    %% TODO D. Measurement Model
     if ~isempty(featureTracksToResidualize)
         H_o = [];
         r_o = [];
         R_o = [];
 
         for f_i = 1:length(featureTracksToResidualize)
-
             track = featureTracksToResidualize{f_i};
             
             %Estimate feature 3D location through Gauss Newton inverse depth
             %optimization
             [p_f_G, Jcost, RCOND] = calcGNPosEst(track.camStates, track.observations, noiseParams);
             % Uncomment to use ground truth map instead
-%             p_f_G = groundTruthMap(:, track.featureId); Jcost = 0; RCOND = 1;
-%             p_f_C = triangulate(squeeze(y_k_j(:, track.camStates{1}.state_k, track.featureId)), camera); Jcost = 0; RCOND = 1;
         
             nObs = size(track.observations,2);
             JcostNorm = Jcost / nObs^2;
@@ -212,8 +191,6 @@ for state_k = kStart:(kEnd-1)
             
             if JcostNorm > msckfParams.maxGNCostNorm ...
                     || RCOND < msckfParams.minRCOND
-%                     || norm(p_f_G) > 50
-                
                 break;
             else
                 map(:,end+1) = p_f_G;
@@ -231,7 +208,6 @@ for state_k = kStart:(kEnd-1)
             % Stacked residuals and friends
             if msckfParams.doNullSpaceTrick
                 H_o = [H_o; H_o_j];
-
                 if ~isempty(A_j)
                     r_o_j = A_j' * r_j;
                     r_o = [r_o ; r_o_j];
@@ -239,7 +215,6 @@ for state_k = kStart:(kEnd-1)
                     R_o_j = A_j' * R_j * A_j;
                     R_o(end+1 : end+size(R_o_j,1), end+1 : end+size(R_o_j,2)) = R_o_j;
                 end
-                
             else
                 H_o = [H_o; H_x_j];
                 r_o = [r_o; r_j];
@@ -273,37 +248,26 @@ for state_k = kStart:(kEnd-1)
 
             % Covariance correction
             tempMat = (eye(15 + 6*size(msckfState.camStates,2)) - K*T_H);
-%             tempMat = (eye(12 + 6*size(msckfState.camStates,2)) - K*H_o);
 
             P_corrected = tempMat * P * tempMat' + K * R_n * K';
 
             msckfState.imuCovar = P_corrected(1:15,1:15);
             msckfState.camCovar = P_corrected(16:end,16:end);
             msckfState.imuCamCovar = P_corrected(1:15, 16:end);
-           
-%             figure(1); clf; imagesc(deltaX); axis equal; axis ij; colorbar;
-%             drawnow;
-            
         end
         
     end
-      %% ==========================STATE HISTORY======================== %% 
-        imuStates = updateStateHistory(imuStates, msckfState, camera, state_k+1);
+
+    %% ==========================STATE HISTORY======================== %% 
+    %% TODO E. EKF Updates
+    imuStates = updateStateHistory(imuStates, msckfState, camera, state_k+1);
+  
+    %% ==========================STATE PRUNING======================== %%
+    %Remove any camera states with no tracked features
+    [msckfState, deletedCamStates] = pruneStates(msckfState);
     
-      %% ==========================STATE PRUNING======================== %%
-        %Remove any camera states with no tracked features
-        [msckfState, deletedCamStates] = pruneStates(msckfState);
-        
-        if ~isempty(deletedCamStates)
-            prunedStates(end+1:end+length(deletedCamStates)) = deletedCamStates;
-        end    
-        
-%         if max(max(msckfState.imuCovar(1:12,1:12))) > 1
-%             disp('omgbroken');
-%         end
-        
-        plot_traj;
-        
-    
-    
+    if ~isempty(deletedCamStates)
+        prunedStates(end+1:end+length(deletedCamStates)) = deletedCamStates;
+    end    
+    plot_traj;
 end
