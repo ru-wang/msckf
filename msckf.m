@@ -138,6 +138,7 @@ for state_k = kStart:(kEnd-1)
             end
             
             track = featureTracks{trackedFeatureIds == featureId};
+            %% TODO 满足MSCKF2007两个Update的触发条件 或者到了最后一帧
             if outOfView ...
                     || size(track.observations, 2) >= msckfParams.maxTrackLength ...
                     || state_k+1 == kEnd
@@ -158,6 +159,7 @@ for state_k = kStart:(kEnd-1)
             end
             
         elseif ~outOfView && state_k+1 < kEnd % && ~ismember(featureId, trackedFeatureIds)
+            %% TODO 新的特征
             %Track new feature
             track.featureId = featureId;
             track.observations = meas_k;
@@ -176,13 +178,15 @@ for state_k = kStart:(kEnd-1)
         r_o = [];
         R_o = [];
 
+        %% TODO 对所有的需要计算的tracks
         for f_i = 1:length(featureTracksToResidualize)
             track = featureTracksToResidualize{f_i};
             
             %Estimate feature 3D location through Gauss Newton inverse depth
             %optimization
+            %% TODO 三角化获得当前的特征的全局坐标
+            %% TODO 丢掉误差过大的点
             [p_f_G, Jcost, RCOND] = calcGNPosEst(track.camStates, track.observations, noiseParams);
-            % Uncomment to use ground truth map instead
         
             nObs = size(track.observations,2);
             JcostNorm = Jcost / nObs^2;
@@ -200,33 +204,47 @@ for state_k = kStart:(kEnd-1)
             end
             
             %Calculate residual and Hoj 
+            %% TODO 计算残差
             [r_j] = calcResidual(p_f_G, track.camStates, track.observations);
             
+            %% TODO 测量的noise协方差矩阵就是简单的堆叠起来
             R_j = diag(repmat([noiseParams.u_var_prime, noiseParams.v_var_prime], [1, numel(r_j)/2]));
+
+            %% TODO 残差求导
             [H_o_j, A_j, H_x_j] = calcHoj(p_f_G, msckfState, track.camStateIndices);  % equ (48)
 
             % Stacked residuals and friends
             if msckfParams.doNullSpaceTrick
                 H_o = [H_o; H_o_j];
                 if ~isempty(A_j)
+                    %% TODO MSCKF2007 (23)
                     r_o_j = A_j' * r_j;
+
+                    %% TODO MSCKF2007 (25)
                     r_o = [r_o ; r_o_j];
 
                     R_o_j = A_j' * R_j * A_j;
+
+                    %% TODO MSCKF2007 (25)
                     R_o(end+1 : end+size(R_o_j,1), end+1 : end+size(R_o_j,2)) = R_o_j;
                 end
             else
+                %% TODO MSCKF2007 (25)
                 H_o = [H_o; H_x_j];
                 r_o = [r_o; r_j];
                 R_o(end+1 : end+size(R_j,1), end+1 : end+size(R_j,2)) = R_j;
             end
         end
         
+        %% TODO E. EKF Updates
         if ~isempty(r_o)
             % Put residuals into their final update-worthy form
             
             if msckfParams.doQRdecomp
+                %% TODO 对Hx矩阵做QR分解
                 [T_H, Q_1] = calcTH(H_o);
+
+                %% TODO MSCKF2007 (28)
                 r_n = Q_1' * r_o;
                 R_n = Q_1' * R_o * Q_1;
             else
@@ -240,26 +258,26 @@ for state_k = kStart:(kEnd-1)
                    msckfState.imuCamCovar', msckfState.camCovar];
 
             % Calculate Kalman gain
+            %% TODO MSCKF2007 (29)
             K = (P*T_H') / ( T_H*P*T_H' + R_n ); % == (P*T_H') * inv( T_H*P*T_H' + R_n )
 
             % State correction
+            %% TODO MSCKF2007 (30)
             deltaX = K * r_n;
             msckfState = updateState(msckfState, deltaX);
 
             % Covariance correction
+            %% TODO MSCKF2007 (31)
             tempMat = (eye(15 + 6*size(msckfState.camStates,2)) - K*T_H);
-
             P_corrected = tempMat * P * tempMat' + K * R_n * K';
 
             msckfState.imuCovar = P_corrected(1:15,1:15);
             msckfState.camCovar = P_corrected(16:end,16:end);
             msckfState.imuCamCovar = P_corrected(1:15, 16:end);
         end
-        
     end
 
     %% ==========================STATE HISTORY======================== %% 
-    %% TODO E. EKF Updates
     imuStates = updateStateHistory(imuStates, msckfState, camera, state_k+1);
   
     %% ==========================STATE PRUNING======================== %%

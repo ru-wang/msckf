@@ -8,12 +8,15 @@ function [r_j] = calcResidual(p_f_G, camStates, measurements)
     for i = 1:size(camStates,2)
         
         C_CG = quatToRotMat(camStates{i}.q_CG);
+
+        %% TODO MSCKF2007 (19)
         p_f_C = C_CG * (p_f_G - camStates{i}.p_C_G);
         % reproject into the image coordinate
         zhat_i_j = p_f_C(1:2)/p_f_C(3);
         
         iStart = 2*(i-1)+1;
         iEnd = 2*i;
+        %% TODO MSCKF2007 (20)
         r_j(iStart:iEnd) = measurements(:,i) - zhat_i_j;
     end
         

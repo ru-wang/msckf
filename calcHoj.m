@@ -19,16 +19,21 @@ for camStateIndex = camStateIndices
 
     C_CG = quatToRotMat(camState.q_CG);
     %The feature position in the camera frame
+    %% TODO MSCKF2007 (19)
     p_f_C = C_CG*(p_f_G - camState.p_C_G);
 
     X = p_f_C(1);
     Y = p_f_C(2);
     Z = p_f_C(3);
 
+    %% TODO MSCKF2007Draft
     J_i = (1/Z)*[1 0 -X/Z; 0 1 -Y/Z];
 
+    %% TODO MSCKF2007Draft (23)
     H_f_j((2*c_i - 1):2*c_i, :) = J_i*C_CG;
+
     % (44) (45)
+    %% TODO MSCKF2007Draft (22)
     H_x_j((2*c_i - 1):2*c_i,15+6*(camStateIndex-1) + 1:15+6*(camStateIndex-1) + 3) = J_i*crossMat(p_f_C);
     H_x_j((2*c_i - 1):2*c_i,(15+6*(camStateIndex-1) + 4):(15+6*(camStateIndex-1) + 6)) = -J_i*C_CG;
 
@@ -36,7 +41,10 @@ for camStateIndex = camStateIndices
 end
 
 
+%% TODO 左零空间
 A_j = null(H_f_j');
+
+%% TODO MSCKF2007 (23)
 H_o_j = A_j'*H_x_j;
 
 end
