@@ -30,9 +30,11 @@ function msckfState_prop = propagateMsckfStateAndCovar(msckfState, measurements_
         msckfState_new.imuState = propagateImuState(msckfState.imuState, cur_gyro_reading,cur_accel_reading,last_gyro_reading,last_accel_reading,dt);
         
         % State Transition Matrix
+        %% TODO MSCKF2007 (13)
         Phi = eye(size(F,1)) + F * dt; % Leutenegger 2013
         
         % IMU-IMU Covariance
+        %% TODO MSCKF2007 (12)
         msckfState_new.imuCovar = Phi * msckfState.imuCovar * Phi' ...
                                 + G * Q_imu * G' * dt; % Leutenegger 2013
         % Enforce PSD-ness  
@@ -42,6 +44,7 @@ function msckfState_prop = propagateMsckfStateAndCovar(msckfState, measurements_
         msckfState_new.camCovar = msckfState.camCovar;
         
         % IMU-Camera Covariance
+        %% TODO MSCKF2007 (11)
         msckfState_new.imuCamCovar = Phi * msckfState.imuCamCovar;
         msckfState_new.camStates = msckfState.camStates;
         
