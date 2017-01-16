@@ -12,6 +12,7 @@ function imuState_prop = propagateImuState(imuState_k, cur_gyro_reading,cur_acce
     old_v = imuState_k.v_I_G;
     old_p    = imuState_k.p_I_G;
  
+    %% TODO MSCKF2007 (9)
     % Rotation state
     new_quat = propagateQuaternionOneStep(old_quat,cur_omegaHat,last_omegaHat,dt);  
     %Unit length quaternion
