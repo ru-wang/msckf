@@ -11,14 +11,15 @@ function undistorted_feature = undistortFeatureTracks(old_format,cu,cv,fu,fv,w)
                 y = (old_format(3*i-1,j)- cv)/fv;
 
 
-                distR = sqrt(x*x + y*y);
-                dOneOver2Tan = 1.0 / (2.0 * tan(w / 2.0));
-                R = tan(distR * w) * dOneOver2Tan;
-                if distR > 0.01
-                    dFactor =  R / distR;
-                else
-                    dFactor = 1.0;
-                end
+                %distR = sqrt(x*x + y*y);
+                %dOneOver2Tan = 1.0 / (2.0 * tan(w / 2.0));
+                %R = tan(distR * w) * dOneOver2Tan;
+                %if distR > 0.01
+                %    dFactor =  R / distR;
+                %else
+                %    dFactor = 1.0;
+                %end
+                dFactor = 1.0;
 
                 old_format(3*i-2,j) = x*dFactor;
                 old_format(3*i-1,j) = y*dFactor;

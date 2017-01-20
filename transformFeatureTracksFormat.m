@@ -10,7 +10,7 @@ featuretrack_3_m_max = zeros(3,image_num,max_index);
 featuretrack_3_m_max(:) = -1;
 
 for i = 1:image_num
-    for j = 1:1000
+    for j = 1:max_index
         feature = old_format(i*3-2:i*3,j);
         index = feature(3,1);
         if index ~= -1

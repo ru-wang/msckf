@@ -4,8 +4,8 @@ clc;
 addpath('utils');
 
 tic
-dataDir = './dataset/tango/data1';
-fileName = './dataset/tango/data1/dataset_camera_alignedindex_featuretracks.mat'; kStart = 2099; kEnd = 2300;
+dataDir = './dataset/KITTI';
+fileName = './dataset/KITTI/dataset_camera_alignedindex_featuretracks.mat'; kStart = 1; kEnd = 113;
 
 load(fileName);
 
