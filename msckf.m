@@ -289,3 +289,11 @@ for state_k = kStart:(kEnd-1)
     end    
     plot_traj;
 end
+
+%% TODO Save
+states = zeros(length(prunedStates), 7);
+for state_i = 1 : length(prunedStates)
+    states(state_i, 1:3) = prunedStates{1, state_i}.p_C_G';
+    states(state_i, 4:7) = prunedStates{1, state_i}.q_CG';
+end
+save('states.txt', '-ascii', 'states')
