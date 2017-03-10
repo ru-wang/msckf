@@ -291,9 +291,12 @@ for state_k = kStart:(kEnd-1)
 end
 
 %% TODO Save
-states = zeros(length(prunedStates), 7);
+states = zeros(length(prunedStates), 12);
 for state_i = 1 : length(prunedStates)
     states(state_i, 1:3) = prunedStates{1, state_i}.p_C_G';
-    states(state_i, 4:7) = prunedStates{1, state_i}.q_CG';
+    R = quatToRotMat(prunedStates{1, state_i}.q_CG);
+    states(state_i, 4:6) = R(1:3, 1);
+    states(state_i, 7:9) = R(1:3, 2);
+    states(state_i, 10:12) = R(1:3, 3);
 end
 save('states.txt', '-ascii', 'states')
