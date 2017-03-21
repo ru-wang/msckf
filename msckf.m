@@ -5,7 +5,7 @@ addpath('utils');
 
 tic
 dataDir = './dataset/KITTI';
-fileName = './dataset/KITTI/dataset_camera_alignedindex_featuretracks.mat'; kStart = 1; kEnd = 113;
+fileName = './dataset/KITTI/dataset_camera_alignedindex_featuretracks_0022.mat'; kStart = 1; kEnd = 800;
 
 load(fileName);
 
@@ -291,12 +291,9 @@ for state_k = kStart:(kEnd-1)
 end
 
 %% TODO Save
-states = zeros(length(prunedStates), 12);
+states = zeros(length(prunedStates), 7);
 for state_i = 1 : length(prunedStates)
     states(state_i, 1:3) = prunedStates{1, state_i}.p_C_G';
-    R = quatToRotMat(prunedStates{1, state_i}.q_CG);
-    states(state_i, 4:6) = R(1:3, 1);
-    states(state_i, 7:9) = R(1:3, 2);
-    states(state_i, 10:12) = R(1:3, 3);
+    states(state_i, 4:7) = prunedStates{1, state_i}.q_CG';
 end
 save('states.txt', '-ascii', 'states')
