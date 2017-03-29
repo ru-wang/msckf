@@ -17,16 +17,16 @@ function msckfState_prop = propagateMsckfStateAndCovar(msckfState, measurements_
         Q_imu = noiseParams.Q_imu;
         
         % using current imu reading to calculate F and G
-        cur_gyro_reading = gyro_reading(imu_integrating_itr)';
-        cur_accel_reading  = accel_reading(imu_integrating_itr)';
+        cur_gyro_reading = gyro_reading(imu_integrating_itr, :)';
+        cur_accel_reading  = accel_reading(imu_integrating_itr, :)';
 
         %% TODO MSCKF2007 (10)
         F = calcF(msckfState.imuState,cur_gyro_reading,cur_accel_reading);
         G = calcG(msckfState.imuState);
         
         %Propagate State
-        last_gyro_reading = gyro_reading(imu_integrating_itr-1)';
-        last_accel_reading  = accel_reading(imu_integrating_itr-1)';
+        last_gyro_reading = gyro_reading(imu_integrating_itr-1, :)';
+        last_accel_reading  = accel_reading(imu_integrating_itr-1, :)';
         msckfState_new.imuState = propagateImuState(msckfState.imuState, cur_gyro_reading,cur_accel_reading,last_gyro_reading,last_accel_reading,dt);
         
         % State Transition Matrix

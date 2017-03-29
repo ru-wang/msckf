@@ -5,7 +5,7 @@ addpath('utils');
 
 tic
 dataDir = './dataset/KITTI';
-fileName = './dataset/KITTI/dataset_camera_alignedindex_featuretracks_0022.mat'; kStart = 1; kEnd = 800;
+fileName = './dataset/KITTI/dataset_camera_alignedindex_featuretracks.mat'; kStart = 1; kEnd = 803;
 
 load(fileName);
 
@@ -75,6 +75,7 @@ numLandmarks = size(y_k_j,3);
 % get camera-gyro aligned index
 aligned_index = syn_index;
 aligned_imu_reading = aligned_gyro_accel;
+first_v_I_G = aligned_gyro_accel(aligned_index(2, 1),8:10)
 
 for state_k = kStart:kEnd
     % get IMU readings during the Period between previous and current image
@@ -92,7 +93,7 @@ end
  firstImuState.q_IG = [0;0;0;1];
  firstImuState.b_g = zeros(3,1);
  firstImuState.b_a = zeros(3,1);
- firstImuState.v_I_G = [0;0;0];
+ firstImuState.v_I_G = first_v_I_G';
  firstImuState.p_I_G = [0;0;0];
  
 % initialize the first state

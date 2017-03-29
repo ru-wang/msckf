@@ -1,6 +1,6 @@
 function propagated_velocity = propagateVelocityOneStep(velocity_old,quat_new,quat_old,a_new,a_old,dt)
 
-g = [0;0;9.81];
+g = [0;0;9.7977499460506];
 rotate_mat_new = quatToRotMat(quat_new);
 rotate_mat_old = quatToRotMat(quat_old);
 
