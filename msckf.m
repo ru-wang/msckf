@@ -5,7 +5,7 @@ addpath('utils');
 
 tic
 dataDir = './dataset/KITTI';
-fileName = './dataset/KITTI/dataset_camera_alignedindex_featuretracks.mat'; kStart = 1; kEnd = 803;
+fileName = './dataset/KITTI/dataset_camera_alignedindex_featuretracks.mat'; kStart = 1; kEnd = 111;
 
 load(fileName);
 
@@ -292,9 +292,9 @@ for state_k = kStart:(kEnd-1)
 end
 
 %% TODO Save
-states = zeros(length(prunedStates), 7);
-for state_i = 1 : length(prunedStates)
-    states(state_i, 1:3) = prunedStates{1, state_i}.p_C_G';
-    states(state_i, 4:7) = prunedStates{1, state_i}.q_CG';
+states = zeros(length(msckfState_imuOnly), 7);
+for state_i = 1 : length(msckfState_imuOnly)
+    states(state_i, 1:3) = msckfState_imuOnly{state_i}.imuState.p_I_G;
+    states(state_i, 4:7) = msckfState_imuOnly{state_i}.imuState.q_IG;
 end
-save('states.txt', '-ascii', 'states')
+save('states_matlab.txt', '-ascii', 'states')
