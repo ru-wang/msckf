@@ -292,9 +292,17 @@ for state_k = kStart:(kEnd-1)
 end
 
 %% TODO Save
-states = zeros(length(msckfState_imuOnly), 7);
+states_ppg = zeros(length(msckfState_imuOnly), 7);
+states_upd = zeros(length(prunedStates), 7);
 for state_i = 1 : length(msckfState_imuOnly)
-    states(state_i, 1:3) = msckfState_imuOnly{state_i}.imuState.p_I_G;
-    states(state_i, 4:7) = msckfState_imuOnly{state_i}.imuState.q_IG;
+    states_ppg(state_i, 1:3) = msckfState_imuOnly{state_i}.imuState.p_I_G;
+    states_ppg(state_i, 4:7) = msckfState_imuOnly{state_i}.imuState.q_IG;
 end
-save('states_matlab.txt', '-ascii', 'states')
+C_C_to_I = quatToRotMat(camera.q_CI);
+for state_i = 1 : length(prunedStates)
+    C_C_to_G = quatToRotMat(prunedStates{state_i}.q_CG);
+    states_upd(state_i, 1:3) = prunedStates{state_i}.p_C_G - C_C_to_G' * C_C_to_I * camera.p_C_I;
+    states_upd(state_i, 4:7) = rotMatToQuat(C_C_to_G * C_C_to_I');
+end
+save('states_matlab_ppg.txt', '-ascii', 'states_ppg');
+save('states_matlab_upd.txt', '-ascii', 'states_upd');
